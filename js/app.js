@@ -136,6 +136,7 @@ function renderHome(filter){
     var st = stats[s.id] || {best:0,total:0};
     var pct = st.total ? Math.round(st.best/st.total*100) : 0;
     var b = document.createElement('button');
+    b.type = 'button';
     b.className = 'topic';
     b.innerHTML = '<span class="num"></span><span class="t"><b></b><small></small>' +
       (st.total ? '<span class="bar"><i style="width:'+pct+'%"></i></span>' : '') +
@@ -145,7 +146,8 @@ function renderHome(filter){
     b.querySelector('small').textContent = qs.length + ' пит.' +
       (st.total ? ' · найкраще ' + st.best + '/' + st.total : '') +
       (s.trusted ? '' : ' · відповіді не звірені');
-    b.onclick = function(){ start(qs, s.title, s.id, {}); };
+    // b.onclick = function(){ start(qs, s.title, s.id, {}); }; шафл
+    b.onclick = function(){ start(qs, s.title, s.id, {preShuffled: true}); };
     host.appendChild(b);
   });
   if(!shown){
@@ -193,28 +195,70 @@ function shuffle(a, rng){
 }
 function start(qs, title, topicId, opts){
   if(!qs.length){ return; }
+  if(S && S.timerId){ clearInterval(S.timerId); }
   opts = opts || {};
   var list = opts.preShuffled ? qs.slice() : shuffle(qs);
   if(opts.limit) list = list.slice(0, opts.limit);
   S = {list:list, i:0, answers:[], title:title, topicId:topicId||null, limit:opts.limit||null,
        ticketNum:opts.ticketNum||null, category:opts.category||null,
-       strict:!!opts.strict, failShown:false, continued:false};
+       strict:!!opts.strict, failShown:false, failReason:null, continued:false,
+       examEndAt: opts.strict ? (Date.now() + EXAM_MINUTES*60*1000) : null, timerId:null};
   show('quiz');
   renderQ();
+  if(S.examEndAt != null) startTimer(); else $('qtimer').classList.add('hidden');
 }
+/* ---------- таймер іспиту (20 хв, лише для «Екзамен» і білетів) ---------- */
+var EXAM_MINUTES = 20;
+function startTimer(){
+  if(S.timerId) clearInterval(S.timerId);
+  $('qtimer').classList.remove('hidden');
+  $('qtimer').classList.remove('bad');
+  tickTimer();
+  S.timerId = setInterval(tickTimer, 1000);
+}
+function clearTimer(){
+  if(S && S.timerId){ clearInterval(S.timerId); S.timerId = null; }
+}
+function tickTimer(){
+  if(!S || S.examEndAt == null || S.failShown) return;
+  var remain = S.examEndAt - Date.now();
+  if(remain <= 0){
+    clearTimer();
+    failExam('time');
+    return;
+  }
+  var mm = Math.floor(remain / 60000);
+  var ss = Math.floor((remain % 60000) / 1000);
+  $('qtimer').textContent = mm + ':' + (ss < 10 ? '0' : '') + ss;
+}
+// провал іспиту — або через вийшов час, або через 3 неправильні відповіді
+function failExam(reason){
+  if(!S || S.failShown) return;
+  S.failShown = true;
+  S.failReason = reason;
+  clearTimer();
+  var badge = $('qtimer');
+  badge.classList.remove('hidden');
+  badge.classList.add('bad');
+  badge.textContent = reason === 'time' ? 'Іспит не складено: вийшов час' : 'Іспит не складено через помилки';
+  showFailModal(reason);
+}
+var pending = null; // обраний, але ще не підтверджений варіант поточного питання
 function renderQ(){
   var q = S.list[S.i];
+  pending = null;
   $('qpos').textContent = (S.i+1) + ' / ' + S.list.length;
   var topicLabel = q.groupLabel ? (q.groupLabel + ' · ' + q.topicTitle) : q.topicTitle;
   $('qtopic').textContent = topicLabel.length > 40 ? topicLabel.slice(0,39) + '…' : topicLabel;
   $('qwarn').classList.toggle('hidden', !!q.v);
+  if(S.examEndAt != null) $('qtimer').classList.remove('hidden');
   $('qtext').textContent = q.q;
   if(q.img){
     var imgEl = $('qimgEl');
     imgEl.onerror = function(){ $('qimg').classList.add('hidden'); };
     imgEl.onload = function(){ $('qimg').classList.remove('hidden'); };
     $('qimg').classList.remove('hidden');
-    imgEl.src = q.src;
+    imgEl.src = 'img/' + q.id + '.webp';
     imgEl.alt = 'Ілюстрація до питання ' + (S.i+1);
   } else {
     $('qimg').classList.add('hidden');
@@ -226,10 +270,15 @@ function renderQ(){
   var given = S.answers[S.i];
   q.o.forEach(function(text, idx){
     var b = document.createElement('button');
+    b.type = 'button';
     b.className = 'opt';
     b.innerHTML = '<span class="k"></span><span class="x"></span>';
     b.querySelector('.k').textContent = (idx+1);
     b.querySelector('.x').textContent = text;
+    // на мобільних тап по кнопці інколи піднімає сторінку вгору, бо браузер
+    // прагне «показати» щойно сфокусований елемент над нижньою панеллю;
+    // прибираємо це, не даючи кнопці отримати нативний фокус при натисканні
+    b.onmousedown = function(e){ e.preventDefault(); };
     if(given){
       b.disabled = true;
       if(cfg.instant){
@@ -239,7 +288,7 @@ function renderQ(){
         b.classList.add('picked');
       }
     } else {
-      b.onclick = function(){ answer(idx); };
+      b.onclick = function(){ selectOption(idx); };
     }
     host.appendChild(b);
   });
@@ -248,21 +297,40 @@ function renderQ(){
     v.className = 'verdict ' + (given.ok ? 'ok' : 'bad');
     v.textContent = given.ok ? 'Правильно.' : 'Правильна відповідь — ' + (q.a+1) + '.';
   }
-  updateNext();
+  updateFooter();
+}
+// клік по варіанту лише підсвічує вибір — без оцінки правильності
+function selectOption(idx){
+  if(S.answers[S.i] !== undefined) return;
+  pending = idx;
+  var btns = $('opts').querySelectorAll('.opt');
+  for(var i=0;i<btns.length;i++) btns[i].classList.remove('picked');
+  btns[idx].classList.add('picked');
+  updateFooter();
 }
 function answeredCount(){
   var n = 0;
   for(var k=0;k<S.list.length;k++) if(S.answers[k] !== undefined) n++;
   return n;
 }
-function updateNext(){
-  var all = answeredCount() === S.list.length;
-  var last = S.i === S.list.length - 1;
-  var b = $('nextBtn');
-  b.textContent = (all || last) ? 'Завершити тест' : 'Далі';
-  var ready = S.answers[S.i] !== undefined || all;
-  b.disabled = !ready;
-  b.style.opacity = ready ? 1 : .45;
+// перемикає нижню панель між «Пропустити/Обрати» (до відповіді) і «Далі» (після)
+function updateFooter(){
+  var given = S.answers[S.i];
+  var confirmBtn = $('confirmBtn'), nextBtn = $('nextBtn'), skipBtn = $('skipBtn');
+  if(given){
+    confirmBtn.classList.add('hidden');
+    skipBtn.classList.add('hidden');
+    nextBtn.classList.remove('hidden');
+    var all = answeredCount() === S.list.length;
+    var last = S.i === S.list.length - 1;
+    nextBtn.textContent = (all || last) ? 'Завершити тест' : 'Далі';
+    nextBtn.disabled = false;
+  } else {
+    nextBtn.classList.add('hidden');
+    confirmBtn.classList.remove('hidden');
+    skipBtn.classList.remove('hidden');
+    confirmBtn.disabled = (pending === null);
+  }
 }
 function buildStrip(){
   var strip = $('strip');
@@ -287,7 +355,10 @@ function markStrip(){
     kids[k].onclick = (function(n){ return function(){ goTo(n); }; })(k);
   }
   var cur = kids[S.i];
-  if(cur && cur.scrollIntoView) cur.scrollIntoView({block:'nearest', inline:'nearest'});
+  if(cur){
+    var strip = $('strip');
+    strip.scrollLeft = cur.offsetLeft - (strip.clientWidth / 2) + (cur.clientWidth / 2);
+  }
 }
 function goTo(k){
   if(!S || k === S.i || k < 0 || k >= S.list.length) return;
@@ -300,7 +371,7 @@ function answer(idx){
   var ok = idx === q.a;
   S.answers[S.i] = {pick:idx, ok:ok, id:q.id};
   var btns = $('opts').querySelectorAll('.opt');
-  for(var i=0;i<btns.length;i++) btns[i].disabled = true;
+  for(var i=0;i<btns.length;i++){ btns[i].disabled = true; btns[i].classList.remove('picked'); }
   if(cfg.instant){
     btns[q.a].classList.add('correct');
     if(!ok) btns[idx].classList.add('wrong');
@@ -315,12 +386,12 @@ function answer(idx){
     var mi = mistakes.indexOf(q.id);
     if(mi > -1 && S.topicId === '__mistakes__'){ mistakes.splice(mi,1); LS.set('mistakes', mistakes); }
   }
+  pending = null;
   markStrip();
-  updateNext();
+  updateFooter();
   if(S.strict && !S.failShown && !ok && wrongCount() > MAX_MISTAKES){
-    S.failShown = true;
     var delay = cfg.instant ? 500 : 0;
-    setTimeout(showFailModal, delay);
+    setTimeout(function(){ failExam('mistakes'); }, delay);
   }
 }
 var MAX_MISTAKES = 2; // дозволено помилок; третя — провал
@@ -329,24 +400,48 @@ function wrongCount(){
   for(var k=0;k<S.answers.length;k++){ var a = S.answers[k]; if(a && !a.ok) n++; }
   return n;
 }
-function showFailModal(){
+function showFailModal(reason){
   var right = S.answers.filter(function(a){ return a && a.ok; }).length;
   var wrong = wrongCount();
   var answered = answeredCount();
-  $('failText').textContent = 'Неправильних відповідей: ' + wrong + ' із дозволених ' + MAX_MISTAKES +
-    '. Відповідено на ' + answered + ' із ' + S.list.length + ' питань, правильно — ' + right + '.';
+  if(reason === 'time'){
+    $('failTitle').textContent = 'Вийшов час';
+    $('failText').textContent = 'На проходження іспиту відведено ' + EXAM_MINUTES + ' хвилин, і час вийшов. ' +
+      'Відповідено на ' + answered + ' із ' + S.list.length + ' питань, правильно — ' + right +
+      '. Можна завершити зараз і побачити розбір, або продовжити відповідати у тренувальному режимі.';
+  } else {
+    $('failTitle').textContent = 'Три неправильні відповіді';
+    $('failText').textContent = 'Неправильних відповідей: ' + wrong + ' із дозволених ' + MAX_MISTAKES +
+      '. Відповідено на ' + answered + ' із ' + S.list.length + ' питань, правильно — ' + right + '.';
+  }
   $('failModal').classList.remove('hidden');
 }
 $('failFinishBtn').onclick = function(){ $('failModal').classList.add('hidden'); finish(); };
 $('failContinueBtn').onclick = function(){ $('failModal').classList.add('hidden'); S.continued = true; };
+// той самий фікс, що й для кнопок-варіантів: не даємо кнопці нативний фокус,
+// інакше після приховування/заміни кнопки браузер підкидає сторінку наверх
+[$('confirmBtn'), $('skipBtn'), $('nextBtn'), $('quitBtn')].forEach(function(b){
+  b.onmousedown = function(e){ e.preventDefault(); };
+});
+$('confirmBtn').onclick = function(){
+  if(pending === null) return;
+  answer(pending);
+};
+$('skipBtn').onclick = function(){
+  if(S.answers[S.i] !== undefined) return;
+  pending = null;
+  if(S.i < S.list.length - 1){ S.i++; renderQ(); }
+  else { finish(); }
+};
 $('nextBtn').onclick = function(){
   var all = answeredCount() === S.list.length;
   if(all || S.i === S.list.length-1) finish();
   else { S.i++; renderQ(); }
 };
-$('quitBtn').onclick = function(){ if(confirm('Вийти з тесту? Результат не збережеться.')){ show('home'); renderHome($('search').value); } };
+$('quitBtn').onclick = function(){ if(confirm('Вийти з тесту? Результат не збережеться.')){ clearTimer(); show('home'); renderHome($('search').value); } };
 
 function finish(){
+  clearTimer();
   var right = S.answers.filter(function(a){ return a && a.ok; }).length;
   var total = S.list.length;
   var wrong = wrongCount();
@@ -387,7 +482,7 @@ function finish(){
     d.className = 'rev';
     if(q.img){
       var thumb = document.createElement('div'); thumb.className = 'revimg';
-      var im = document.createElement('img'); im.src = q.src; im.alt = ''; im.loading = 'lazy';
+      var im = document.createElement('img'); im.src = 'img/' + q.id + '.webp'; im.alt = ''; im.loading = 'lazy';
       im.onerror = function(){ thumb.classList.add('hidden'); };
       thumb.appendChild(im); d.appendChild(thumb);
     }
@@ -412,7 +507,8 @@ $('againBtn').onclick = function(){
   else if(S.topicId === '__mistakes__') startMistakes();
   else if(S.topicId === '__official__') startOfficialExam();
   else if(S.topicId === '__ticket__') startTicket(S.ticketNum);
-  else start(topicPool(S.topicId), S.title, S.topicId, {limit:S.limit});
+  //else start(topicPool(S.topicId), S.title, S.topicId, {limit:S.limit}); шафл знову
+  else start(topicPool(S.topicId), S.title, S.topicId, {limit:S.limit, preShuffled: true});
 };
 $('homeBtn').onclick = function(){ show('home'); renderHome($('search').value); };
 
@@ -487,8 +583,10 @@ document.addEventListener('keydown', function(e){
   if(e.key >= '1' && e.key <= '9'){
     var b = $('opts').children[parseInt(e.key,10)-1];
     if(b && !b.disabled) b.click();
-  } else if(e.key === 'Enter' && !$('nextBtn').disabled){ $('nextBtn').click(); }
-  else if(e.key === 'ArrowRight'){ goTo(S.i + 1); }
+  } else if(e.key === 'Enter'){
+    if(!$('nextBtn').classList.contains('hidden') && !$('nextBtn').disabled) $('nextBtn').click();
+    else if(!$('confirmBtn').classList.contains('hidden') && !$('confirmBtn').disabled) $('confirmBtn').click();
+  } else if(e.key === 'ArrowRight'){ goTo(S.i + 1); }
   else if(e.key === 'ArrowLeft'){ goTo(S.i - 1); }
 });
 
@@ -496,3 +594,4 @@ $('subhead').textContent = ALL.length + ' питань · ' + DATA.length + ' т
 renderCatRow('catrow');
 renderHome('');
 })();
+

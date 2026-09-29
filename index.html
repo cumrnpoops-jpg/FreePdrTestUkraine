@@ -91,10 +91,13 @@
       <span id="qpos">1 / 20</span>
       <span class="tag" id="qtopic">Тема</span>
       <span class="tag warn hidden" id="qwarn">відповідь не звірена</span>
+      <span class="tag timer hidden" id="qtimer">20:00</span>
     </div>
     <h2 class="qtext" id="qtext"></h2>
-    <div class="qimgwrap hidden" id="qimg"><img id="qimgEl" alt="Ілюстрація до питання" loading="lazy"></div>
-    <div class="opts" id="opts"></div>
+    <div class="qbody">
+      <div class="qimgwrap hidden" id="qimg"><img id="qimgEl" alt="Ілюстрація до питання" loading="lazy"></div>
+      <div class="opts" id="opts"></div>
+    </div>
     <div class="verdict hidden" id="verdict"></div>
   </main>
 
@@ -116,14 +119,16 @@
 <div class="footbar hidden" id="footbar">
   <div class="inner">
     <button class="link" id="quitBtn">Вийти</button>
-    <button class="btn" id="nextBtn" style="flex:1">Далі</button>
+    <button class="btn secondary skip" id="skipBtn">Пропустити</button>
+    <button class="btn" id="confirmBtn" style="flex:1">Обрати</button>
+    <button class="btn hidden" id="nextBtn" style="flex:1">Далі</button>
   </div>
 </div>
 
 <div class="modal-overlay hidden" id="failModal">
   <div class="modal-card">
     <span class="tag bad">Іспит не складено</span>
-    <h3>Три неправильні відповіді</h3>
+    <h3 id="failTitle">Три неправильні відповіді</h3>
     <p id="failText">У цьому іспиті дозволено не більше двох помилок. Можна завершити зараз і побачити розбір, або продовжити відповідати на решту питань у тренувальному режимі.</p>
     <button class="btn" id="failFinishBtn">Завершити й переглянути розбір</button>
     <button class="btn secondary" id="failContinueBtn">Продовжити тест</button>
