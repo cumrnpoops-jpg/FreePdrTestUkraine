@@ -323,7 +323,12 @@ function updateFooter(){
     nextBtn.classList.remove('hidden');
     var all = answeredCount() === S.list.length;
     var last = S.i === S.list.length - 1;
-    nextBtn.textContent = (all || last) ? 'Завершити тест' : 'Далі';
+if (last && !all) {
+      nextBtn.textContent = 'Далі';
+    } else {
+      nextBtn.textContent = (all || last) ? 'Завершити тест' : 'Далі';
+    }
+    
     nextBtn.disabled = false;
   } else {
     nextBtn.classList.add('hidden');
@@ -435,8 +440,31 @@ $('skipBtn').onclick = function(){
 };
 $('nextBtn').onclick = function(){
   var all = answeredCount() === S.list.length;
-  if(all || S.i === S.list.length-1) finish();
-  else { S.i++; renderQ(); }
+  var last = S.i === S.list.length - 1;
+  
+  // Якщо це останнє питання, але ще не на все відповіли
+  if (last && !all) {
+    // Шукаємо перше ліворуч чи праворуч питання, на яке ще НЕМАЄ відповіді
+    var nextUnanswered = -1;
+    for(var k = 0; k < S.list.length; k++){
+      if(S.answers[k] === undefined){
+        nextUnanswered = k;
+        break; // Знайшли перше пропущене — зупиняємо пошук
+      }
+    }
+    if(nextUnanswered !== -1){
+      goTo(nextUnanswered); // Перекидаємо на нього
+    }
+    return;
+  }
+  
+  // Стандартна логіка: якщо все пройшли або це справжній кінець — завершуємо, інакше йдемо на +1
+  if(all || last) {
+    finish();
+  } else {
+    S.i++; 
+    renderQ();
+  }
 };
 $('quitBtn').onclick = function(){ if(confirm('Вийти з тесту? Результат не збережеться.')){ clearTimer(); show('home'); renderHome($('search').value); } };
 
