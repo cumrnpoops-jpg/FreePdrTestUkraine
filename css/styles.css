@@ -104,7 +104,15 @@ header.top{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 .qbody{display:block}
 .qimgwrap{margin:14px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;
   background:#fff;display:flex;justify-content:center;cursor:zoom-in}
-.qimgwrap img{display:block;width:100%;height:auto;max-height:300px;object-fit:contain}
+/*.qimgwrap img{display:block;width:100%;height:auto;max-height:300px;object-fit:contain}*/
+.qimgwrap img{
+  display:block;
+  width:auto;         /* ← ширина = природний розмір файлу */
+  height:auto;
+  max-width:100%;      /* ← але не ширше за контейнер */
+  max-height:300px;    /* ← і не вище за 300px (420px на ПК) */
+}
+
 .qimgwrap .zoomhint{position:relative}
 .lightbox{position:fixed;inset:0;background:rgba(10,12,15,.92);z-index:60;display:flex;
   align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
