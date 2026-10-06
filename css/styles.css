@@ -219,3 +219,10 @@ header.top{display:flex;align-items:center;gap:12px;margin-bottom:22px}
   .strip button{width:38px;height:38px}
   .chip{padding:9px 15px}
 }
+/* текст заголовок */
+.seo-text{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.4;
+  margin-top:10px;
+}
