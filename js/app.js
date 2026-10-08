@@ -80,6 +80,27 @@ $('themeBtn').onclick = function(){
   LS.set('theme', next);
 };
 
+/* ---------- фікс «підскакування» нижньої панелі на мобільних ----------
+   мобільні браузери на льоту ховають/показують адресний рядок під час скролу,
+   через що position:fixed панель на мить лишається прив'язаною до старої
+   висоти екрана, і під нею з'являється порожній простір. Тут ми стежимо за
+   справжнім видимим viewport (visualViewport) і підтягуємо панель під нього. */
+(function(){
+  var footbar = $('footbar');
+  var vv = window.visualViewport;
+  if(!footbar || !vv) return; // старі браузери без підтримки — працює як і раніше
+  function pin(){
+    var offset = window.innerHeight - (vv.height + vv.offsetTop);
+    footbar.style.transform = offset > 0
+      ? 'translateZ(0) translateY(-' + offset + 'px)'
+      : 'translateZ(0)';
+  }
+  vv.addEventListener('resize', pin);
+  vv.addEventListener('scroll', pin);
+  window.addEventListener('orientationchange', pin);
+  pin();
+})();
+
 /* ---------- lightbox (повноекранний перегляд ілюстрації) ---------- */
 $('qimg').onclick = function(){
   $('lightboxImg').src = $('qimgEl').src;
