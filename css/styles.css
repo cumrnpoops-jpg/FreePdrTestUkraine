@@ -150,7 +150,11 @@ header.top{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 .verdict{margin-top:16px;font-size:14px;font-weight:600}
 .verdict.ok{color:var(--ok)} .verdict.bad{color:var(--bad)}
 .footbar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);
-  padding:12px 16px calc(12px + env(safe-area-inset-bottom));}
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);
+  will-change:transform;
+  backface-visibility:hidden;}
 .footbar .inner{max-width:660px;margin:0 auto;display:flex;gap:10px;align-items:center}
 .footbar .btn{margin-top:0}
 .footbar .btn.skip{flex:none;width:auto;padding:14px 16px;white-space:nowrap}
