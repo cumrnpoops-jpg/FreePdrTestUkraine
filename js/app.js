@@ -80,26 +80,11 @@ $('themeBtn').onclick = function(){
   LS.set('theme', next);
 };
 
-/* ---------- фікс «підскакування» нижньої панелі на мобільних ----------
-   мобільні браузери на льоту ховають/показують адресний рядок під час скролу,
-   через що position:fixed панель на мить лишається прив'язаною до старої
-   висоти екрана, і під нею з'являється порожній простір. Тут ми стежимо за
-   справжнім видимим viewport (visualViewport) і підтягуємо панель під нього. */
-(function(){
-  var footbar = $('footbar');
-  var vv = window.visualViewport;
-  if(!footbar || !vv) return; // старі браузери без підтримки — працює як і раніше
-  function pin(){
-    var offset = window.innerHeight - (vv.height + vv.offsetTop);
-    footbar.style.transform = offset > 0
-      ? 'translateZ(0) translateY(-' + offset + 'px)'
-      : 'translateZ(0)';
-  }
-  vv.addEventListener('resize', pin);
-  vv.addEventListener('scroll', pin);
-  window.addEventListener('orientationchange', pin);
-  pin();
-})();
+/* Попередній фікс «підскакування» нижньої панелі через visualViewport
+   прибрано: тепер .footbar — не position:fixed, а звичайний flex-елемент
+   під прокручуваною областю (див. css/styles.css, body{display:flex}),
+   тож панелі більше нема за чим «підлаштовуватись» під адресний рядок
+   мобільного браузера — вона фізично не може «підскочити». */
 
 /* ---------- lightbox (повноекранний перегляд ілюстрації) ---------- */
 $('qimg').onclick = function(){
@@ -247,6 +232,10 @@ $('resetBtn').onclick = function(){
 function show(name){
   ['home','settings','quiz','result','tickets','signs'].forEach(function(n){ $(n).classList.toggle('hidden', n !== name); });
   $('footbar').classList.toggle('hidden', name !== 'quiz');
+  // .wrap — реальний скрол-контейнер (body більше не скролиться), тож
+  // саме його прокрутку й треба скидати при переході між екранами.
+  var wrap = document.querySelector('.wrap');
+  if(wrap) wrap.scrollTop = 0;
   window.scrollTo(0,0);
 }
 
