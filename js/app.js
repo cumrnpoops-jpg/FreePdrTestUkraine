@@ -232,10 +232,6 @@ $('resetBtn').onclick = function(){
 function show(name){
   ['home','settings','quiz','result','tickets','signs'].forEach(function(n){ $(n).classList.toggle('hidden', n !== name); });
   $('footbar').classList.toggle('hidden', name !== 'quiz');
-  // .wrap — реальний скрол-контейнер (body більше не скролиться), тож
-  // саме його прокрутку й треба скидати при переході між екранами.
-  var wrap = document.querySelector('.wrap');
-  if(wrap) wrap.scrollTop = 0;
   window.scrollTo(0,0);
 }
 
