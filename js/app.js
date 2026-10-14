@@ -80,11 +80,25 @@ $('themeBtn').onclick = function(){
   LS.set('theme', next);
 };
 
-/* Попередній фікс «підскакування» нижньої панелі через visualViewport
-   прибрано: тепер .footbar — не position:fixed, а звичайний flex-елемент
-   під прокручуваною областю (див. css/styles.css, body{display:flex}),
-   тож панелі більше нема за чим «підлаштовуватись» під адресний рядок
-   мобільного браузера — вона фізично не може «підскочити». */
+/* ---------- справжня видима висота екрана для .wrap ----------
+   CSS-одиниці 100vh/100svh «застигають» один раз і не завжди встигають
+   оновитись, коли Android Chrome на льоту ховає/показує свою панель
+   адреси (через що й лишалось порожнє місце під нижньою панеллю).
+   Тут висота рахується наживо через visualViewport і записується в
+   CSS-змінну --app-vh, яку .wrap використовує для min-height — так
+   .wrap завжди точно відповідає тому, що насправді видно на екрані. */
+(function(){
+  function setVH(){
+    var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    document.documentElement.style.setProperty('--app-vh', h + 'px');
+  }
+  setVH();
+  window.addEventListener('resize', setVH);
+  window.addEventListener('orientationchange', setVH);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', setVH);
+  }
+})();
 
 /* ---------- lightbox (повноекранний перегляд ілюстрації) ---------- */
 $('qimg').onclick = function(){

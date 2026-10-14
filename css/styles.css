@@ -27,7 +27,9 @@ h1,h2,h3,.num{font-family:"Unbounded","Commissioner",system-ui,sans-serif;font-w
 /* min-height гарантує, що сторінка завжди хоч трохи вища за екран,
    інакше «липкій» нижній панелі (.footbar, position:sticky нижче)
    нема від чого «відштовхнутися» до справжнього низу екрана. */
-.wrap{max-width:660px;margin:0 auto;padding:18px 16px 24px;min-height:100vh;min-height:100svh}
+.wrap{max-width:660px;margin:0 auto;padding:18px 16px 24px;
+  min-height:100vh;min-height:100svh;
+  min-height:var(--app-vh, 100svh);}
 button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
 .hidden{display:none !important}
