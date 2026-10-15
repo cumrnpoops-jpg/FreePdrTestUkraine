@@ -28,17 +28,16 @@ h1,h2,h3,.num{font-family:"Unbounded","Commissioner",system-ui,sans-serif;font-w
    інакше «липкій» нижній панелі (.footbar, position:sticky нижче)
    нема від чого «відштовхнутися» до справжнього низу екрана.
    Порядок важливий: останнє правило, яке браузер розуміє, перемагає.
-   100dvh — це «жива», постійно оновлювана одиниця за специфікацією,
-   і саме її підтримують сучасні Chrome і Firefox для Android — тому
-   вона йде останньою і має найвищий пріоритет. --app-vh (JS, рахує
-   через visualViewport) лишається лише запасним варіантом для зовсім
-   старих рушіїв без підтримки dvh — там, де реальний живий замір усе
-   ж краще за застиглий 100vh. */
+   100lvh — найбільша можлива висота екрана (адресний рядок сховано).
+   Сторінка завжди не нижча за неї, тож завжди трохи вища за видиму
+   область, і липка панель тримається біля справжнього низу екрана
+   незалежно від того, показаний зараз адресний рядок чи ні.
+   Решта рядків — запасні варіанти для старіших браузерів. */
 .wrap{max-width:660px;margin:0 auto;padding:18px 16px 24px;
   min-height:100vh;
   min-height:var(--app-vh, 100vh);
-  min-height:100svh;
-  min-height:100dvh;}
+  min-height:100dvh;
+  min-height:100lvh;}
 button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
 .hidden{display:none !important}
