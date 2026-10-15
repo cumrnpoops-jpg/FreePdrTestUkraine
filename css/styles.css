@@ -26,10 +26,19 @@ body{
 h1,h2,h3,.num{font-family:"Unbounded","Commissioner",system-ui,sans-serif;font-weight:700;letter-spacing:-.01em}
 /* min-height гарантує, що сторінка завжди хоч трохи вища за екран,
    інакше «липкій» нижній панелі (.footbar, position:sticky нижче)
-   нема від чого «відштовхнутися» до справжнього низу екрана. */
+   нема від чого «відштовхнутися» до справжнього низу екрана.
+   Порядок важливий: останнє правило, яке браузер розуміє, перемагає.
+   100dvh — це «жива», постійно оновлювана одиниця за специфікацією,
+   і саме її підтримують сучасні Chrome і Firefox для Android — тому
+   вона йде останньою і має найвищий пріоритет. --app-vh (JS, рахує
+   через visualViewport) лишається лише запасним варіантом для зовсім
+   старих рушіїв без підтримки dvh — там, де реальний живий замір усе
+   ж краще за застиглий 100vh. */
 .wrap{max-width:660px;margin:0 auto;padding:18px 16px 24px;
-  min-height:100vh;min-height:100svh;
-  min-height:var(--app-vh, 100svh);}
+  min-height:100vh;
+  min-height:var(--app-vh, 100vh);
+  min-height:100svh;
+  min-height:100dvh;}
 button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
 .hidden{display:none !important}
