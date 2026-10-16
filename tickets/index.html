@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+(function(){try{var t=JSON.parse(localStorage.getItem('pdr25:theme'));
+if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<title>Білети правил дорожнього руху України — безкоштовні тести ПДР</title>
+<meta name="description" content="Безкоштовні білети ПДР України: 40 білетів по 20 питань за структурою офіційного іспиту, а також 20 випадкових питань.">
+<link rel="canonical" href="https://freetestpdr.com/tickets/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="icon" type="image/png" href="/favicon.png">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-S39BPPF8ND"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-S39BPPF8ND');
+</script>
+</head>
+<body data-page="tickets" data-quit="/tickets/">
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/" title="На головну">
+      <div class="mark">PDR</div>
+      <span class="name">FREE TEST PDR</span>
+    </a>
+    <button class="icon-btn" id="themeBtn" title="Змінити тему">Тема</button>
+  </header>
+
+  <main>
+    <!-- БІЛЕТИ: вибір категорії й номера, старт на цій самій сторінці -->
+    <section id="intro">
+      <h1 class="pagetitle">Білети правил дорожнього руху України</h1>
+      <div class="hero">
+      <div class="cathead">
+        <b>Категорія</b>
+        <small>використовується для іспиту й білетів</small>
+      </div>
+      <div class="catrow" id="catrow"></div>
+        <div class="cathead">
+          <b>Білет</b>
+          <small>оберіть номер білета</small>
+        </div>
+        <div class="tgrid">
+          <a href="/tickets/1/" data-ticket="1">1<small>білет</small></a>
+          <a href="/tickets/2/" data-ticket="2">2<small>білет</small></a>
+          <a href="/tickets/3/" data-ticket="3">3<small>білет</small></a>
+          <a href="/tickets/4/" data-ticket="4">4<small>білет</small></a>
+          <a href="/tickets/5/" data-ticket="5">5<small>білет</small></a>
+          <a href="/tickets/6/" data-ticket="6">6<small>білет</small></a>
+          <a href="/tickets/7/" data-ticket="7">7<small>білет</small></a>
+          <a href="/tickets/8/" data-ticket="8">8<small>білет</small></a>
+          <a href="/tickets/9/" data-ticket="9">9<small>білет</small></a>
+          <a href="/tickets/10/" data-ticket="10">10<small>білет</small></a>
+          <a href="/tickets/11/" data-ticket="11">11<small>білет</small></a>
+          <a href="/tickets/12/" data-ticket="12">12<small>білет</small></a>
+          <a href="/tickets/13/" data-ticket="13">13<small>білет</small></a>
+          <a href="/tickets/14/" data-ticket="14">14<small>білет</small></a>
+          <a href="/tickets/15/" data-ticket="15">15<small>білет</small></a>
+          <a href="/tickets/16/" data-ticket="16">16<small>білет</small></a>
+          <a href="/tickets/17/" data-ticket="17">17<small>білет</small></a>
+          <a href="/tickets/18/" data-ticket="18">18<small>білет</small></a>
+          <a href="/tickets/19/" data-ticket="19">19<small>білет</small></a>
+          <a href="/tickets/20/" data-ticket="20">20<small>білет</small></a>
+          <a href="/tickets/21/" data-ticket="21">21<small>білет</small></a>
+          <a href="/tickets/22/" data-ticket="22">22<small>білет</small></a>
+          <a href="/tickets/23/" data-ticket="23">23<small>білет</small></a>
+          <a href="/tickets/24/" data-ticket="24">24<small>білет</small></a>
+          <a href="/tickets/25/" data-ticket="25">25<small>білет</small></a>
+          <a href="/tickets/26/" data-ticket="26">26<small>білет</small></a>
+          <a href="/tickets/27/" data-ticket="27">27<small>білет</small></a>
+          <a href="/tickets/28/" data-ticket="28">28<small>білет</small></a>
+          <a href="/tickets/29/" data-ticket="29">29<small>білет</small></a>
+          <a href="/tickets/30/" data-ticket="30">30<small>білет</small></a>
+          <a href="/tickets/31/" data-ticket="31">31<small>білет</small></a>
+          <a href="/tickets/32/" data-ticket="32">32<small>білет</small></a>
+          <a href="/tickets/33/" data-ticket="33">33<small>білет</small></a>
+          <a href="/tickets/34/" data-ticket="34">34<small>білет</small></a>
+          <a href="/tickets/35/" data-ticket="35">35<small>білет</small></a>
+          <a href="/tickets/36/" data-ticket="36">36<small>білет</small></a>
+          <a href="/tickets/37/" data-ticket="37">37<small>білет</small></a>
+          <a href="/tickets/38/" data-ticket="38">38<small>білет</small></a>
+          <a href="/tickets/39/" data-ticket="39">39<small>білет</small></a>
+          <a href="/tickets/40/" data-ticket="40">40<small>білет</small></a>
+        </div>
+        <button class="btn" id="startBtn" style="margin-top:18px" disabled>Оберіть білет</button>
+        <p class="note">Кожен білет — це той самий набір із 20 питань за структурою іспиту (для обраної категорії), поки не зміните категорію чи дані.</p>
+      </div>
+      <a class="navcard tickets-random" href="/tickets/random/"><span class="t"><b>20 випадкових питань</b><small>Тест із випадкових питань усіх тем</small></span><span class="go">›</span></a>
+    <a class="btn secondary intro-back" href="/">На головну</a>
+    </section>
+
+    <!-- ТЕСТ -->
+    <section id="quiz" class="hidden">
+      <div class="strip" id="strip"></div>
+      <div class="qmeta">
+        <span id="qpos">1 / 20</span>
+        <span class="tag" id="qtopic">Тема</span>
+        <span class="tag warn hidden" id="qwarn">відповідь не звірена</span>
+        <span class="tag timer hidden" id="qtimer">20:00</span>
+      </div>
+      <h2 class="qtext" id="qtext"></h2>
+      <div class="qbody">
+        <div class="qimgwrap hidden" id="qimg"><img id="qimgEl" alt="Ілюстрація до питання" loading="lazy"></div>
+        <div class="opts" id="opts"></div>
+      </div>
+      <div class="verdict hidden" id="verdict"></div>
+    </section>
+
+    <!-- РЕЗУЛЬТАТ -->
+    <section id="result" class="hidden">
+      <div class="hero">
+        <div id="verdictBadge"></div>
+        <div class="score"><span id="scoreNum">0</span><small id="scoreOf"> / 20</small></div>
+        <p id="scoreText">—</p>
+        <div class="row-btns">
+          <button class="btn" id="againBtn">Пройти ще раз</button>
+          <a class="btn secondary" href="/">На головну</a>
+        </div>
+      </div>
+      <div id="review"></div>
+    </section>
+  </main>
+</div>
+
+<div class="footbar hidden" id="footbar">
+  <div class="inner">
+    <button class="link" id="quitBtn">Вийти</button>
+    <button class="btn secondary skip" id="skipBtn">Пропустити</button>
+    <button class="btn" id="confirmBtn" style="flex:1">Обрати</button>
+    <button class="btn hidden" id="nextBtn" style="flex:1">Далі</button>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="failModal">
+  <div class="modal-card">
+    <span class="tag bad">Іспит не складено</span>
+    <h3 id="failTitle">Три неправильні відповіді</h3>
+    <p id="failText">У цьому іспиті дозволено не більше двох помилок. Можна завершити зараз і побачити розбір, або продовжити відповідати на решту питань у тренувальному режимі.</p>
+    <button class="btn" id="failFinishBtn">Завершити й переглянути розбір</button>
+    <button class="btn secondary" id="failContinueBtn">Продовжити тест</button>
+  </div>
+</div>
+
+<div class="lightbox hidden" id="lightbox"><img id="lightboxImg" alt=""></div>
+
+<script src="/js/data.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

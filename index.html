@@ -1,18 +1,20 @@
 <!DOCTYPE html>
-<html lang="uk" data-theme="light">
+<html lang="uk">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>FREE TEST PDR — безкоштовні тести ПДР</title>
-<meta name="description" content="Безкоштовні тести правил дорожнього руху України. Всі питання та теми повністю безкоштовні">
+<script>
+(function(){try{var t=JSON.parse(localStorage.getItem('pdr25:theme'));
+if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+</script>
+<title>FREE TEST PDR — безкоштовні тести ПДР України</title>
+<meta name="description" content="Тестові питання правил дорожнього руху України, повністю безкоштовно: іспит, білети, питання за темами.">
+<link rel="canonical" href="https://freetestpdr.com/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
-<link rel="icon" type="image/png" href="favicon.png">
-</head>
-
-
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="icon" type="image/png" href="/favicon.png">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-S39BPPF8ND"></script>
 <script>
@@ -22,148 +24,48 @@
 
   gtag('config', 'G-S39BPPF8ND');
 </script>
-
-<body>
+</head>
+<body data-page="home" data-quit="/">
 <div class="wrap">
   <header class="top">
-    <div class="mark">PDR</div>
-    <div>
-      <h1>FREE TEST PDR</h1>
-      <p id="subhead">Безкоштовні тести ПДР — підготовка до іспиту</p>
-    </div>
+    <a class="brand" href="/" title="На головну">
+      <div class="mark">PDR</div>
+      <span class="name">FREE TEST PDR</span>
+    </a>
     <button class="icon-btn" id="themeBtn" title="Змінити тему">Тема</button>
   </header>
 
-  <!-- HOME -->
-  <main id="home">
-    <p class="seo-text">Тестові питання правил дорожнього руху України, повністю безкоштовно.</p>
-    <div class="hero">
-      <div class="cathead">
-        <b>Категорія</b>
-        <small>використовується для іспиту й білетів</small>
-      </div>
-      <div class="catrow" id="catrow"></div>
+  <main>
+    <!-- ГОЛОВНА -->
+    <section id="home">
+      <h1 class="lead">Тестові питання правил дорожнього руху України, повністю безкоштовно.</h1>
 
-      <div class="count"><span id="poolCount">0</span><span>питань доступно</span></div>
-      <p>Іспит складається з 20 питань за офіційною структурою: 10 ПДР, 4 з основ безпеки, 4 з будови (залежно від категорії), 2 з домедичної допомоги.</p>
-      <button class="btn" id="officialBtn">Екзамен (20 питань, за структурою)</button>
-      <div class="row-btns" style="margin-top:8px">
-        <button class="btn secondary" id="ticketsBtn">Білети</button>
-        <button class="btn secondary" id="examBtn">20 випадкових</button>
-      </div>
-      <div class="row-btns" style="margin-top:8px">
-        <button class="btn secondary" id="mistakesBtn">Мої помилки (<span id="mistCount">0</span>)</button>
-        <button class="btn secondary" id="setBtn">Налаштування</button>
-      </div>
-    </div>
+      <nav class="navlist" aria-label="Розділи сайту">
+      <a class="navcard" href="/exam/"><span class="t"><b>Іспит</b><small>20 питань за офіційною структурою іспиту</small></span><span class="go">›</span></a>
+      <a class="navcard" href="/topics/"><span class="t"><b>Питання за темами</b><small>Список усіх тем тестів ПДР</small></span><span class="go">›</span></a>
+      <a class="navcard" href="/tickets/"><span class="t"><b>Білети</b><small>Білети правил дорожнього руху України</small></span><span class="go">›</span></a>
+      <a class="navcard" href="/mistakes/"><span class="t"><b>Помилки (<span id="mistCount">0</span>)</b><small>Питання, у яких ви помилилися</small></span><span class="go">›</span></a>
+      </nav>
 
-    <input class="search" id="search" type="search" placeholder="Пошук теми або питання" autocomplete="off">
-    <div id="topics"></div>
-    <p class="seo-text">Тестові питання правил дорожнього руху України, повністю безкоштовно.</p>
-  </main>
+      <h2 class="sect-title">Налаштування</h2>
+      <div class="sheet">
+        <div class="set">
+          <div class="t"><b>Показувати відповідь одразу</b>
+            <small>Вимкніть, щоб бачити результат лише наприкінці тесту.</small></div>
+          <button class="sw" id="swInstant" role="switch" aria-checked="true"><i></i></button>
+        </div>
+        <div class="set">
+          <div class="t"><b>Скинути прогрес</b>
+            <small>Видаляє статистику за темами та збережені помилки.</small></div>
+          <button class="btn secondary" style="width:auto;padding:8px 14px" id="resetBtn">Скинути</button>
+        </div>
+      </div>
 
-  <!-- TICKETS -->
-  <main id="tickets" class="hidden">
-    <div class="cathead" style="margin-top:4px">
-      <b>Білети</b>
-      <small>кожен білет — той самий набір із 20 питань за структурою іспиту, поки не зміните категорію чи дані</small>
-    </div>
-    <div class="catrow" id="catrowTickets"></div>
-    <div class="tgrid" id="ticketGrid"></div>
-    <button class="btn secondary" id="ticketsBack" style="margin-top:16px">Назад</button>
-  </main>
-
-  <!-- ДОРОЖНІ ЗНАКИ: вибір групи -->
-  <main id="signs" class="hidden">
-    <div class="cathead" style="margin-top:4px">
-      <b>Дорожні знаки</b>
-      <small>оберіть групу знаків для практики або пройдіть увесь розділ</small>
-    </div>
-    <div id="signGrid"></div>
-    <button class="btn secondary" id="signsBack" style="margin-top:16px">Назад</button>
-  </main>
-  
-  <!-- SETTINGS -->
-  <main id="settings" class="hidden">
-    <div class="sheet">
-      <div class="set">
-        <div class="t"><b>Лише звірені питання</b>
-          <small>Показувати тільки ті питання, чия правильна відповідь повністю збігається з таблицею відповідей.</small></div>
-        <button class="sw" id="swVerified" role="switch" aria-checked="true"><i></i></button>
-      </div>
-      <div class="set">
-        <div class="t"><b>Ховати питання з малюнком</b>
-          <small>Не показувати питання, для розуміння яких потрібна ілюстрація (знак, розмітка, схема перехрестя).</small></div>
-        <button class="sw" id="swImg" role="switch" aria-checked="false"><i></i></button>
-      </div>
-      <div class="set">
-        <div class="t"><b>Показувати відповідь одразу</b>
-          <small>Вимкніть, щоб бачити результат лише наприкінці тесту.</small></div>
-        <button class="sw" id="swInstant" role="switch" aria-checked="true"><i></i></button>
-      </div>
-      <div class="set">
-        <div class="t"><b>Скинути прогрес</b>
-          <small>Видаляє статистику за темами та збережені помилки.</small></div>
-        <button class="btn secondary" style="width:auto;padding:8px 14px" id="resetBtn">Скинути</button>
-      </div>
-    </div>
-    <button class="btn secondary" id="setBack">Назад</button>
-  </main>
-
-  <!-- QUIZ -->
-  <main id="quiz" class="hidden">
-    <div class="strip" id="strip"></div>
-    <div class="qmeta">
-      <span id="qpos">1 / 20</span>
-      <span class="tag" id="qtopic">Тема</span>
-      <span class="tag warn hidden" id="qwarn">відповідь не звірена</span>
-      <span class="tag timer hidden" id="qtimer">20:00</span>
-    </div>
-    <h2 class="qtext" id="qtext"></h2>
-    <div class="qbody">
-      <div class="qimgwrap hidden" id="qimg"><img id="qimgEl" alt="Ілюстрація до питання" loading="lazy"></div>
-      <div class="opts" id="opts"></div>
-    </div>
-    <div class="verdict hidden" id="verdict"></div>
-  </main>
-
-  <!-- RESULT -->
-  <main id="result" class="hidden">
-    <div class="hero">
-      <div id="verdictBadge"></div>
-      <div class="score"><span id="scoreNum">0</span><small id="scoreOf"> / 20</small></div>
-      <p id="scoreText">—</p>
-      <div class="row-btns">
-        <button class="btn" id="againBtn">Пройти ще раз</button>
-        <button class="btn secondary" id="homeBtn">На головну</button>
-      </div>
-    </div>
-    <div id="review"></div>
+      <p class="seo-text">Тестові питання правил дорожнього руху України, повністю безкоштовно.</p>
+    </section>
   </main>
 </div>
 
-<div class="footbar hidden" id="footbar">
-  <div class="inner">
-    <button class="link" id="quitBtn">Вийти</button>
-    <button class="btn secondary skip" id="skipBtn">Пропустити</button>
-    <button class="btn" id="confirmBtn" style="flex:1">Обрати</button>
-    <button class="btn hidden" id="nextBtn" style="flex:1">Далі</button>
-  </div>
-</div>
-
-<div class="modal-overlay hidden" id="failModal">
-  <div class="modal-card">
-    <span class="tag bad">Іспит не складено</span>
-    <h3 id="failTitle">Три неправильні відповіді</h3>
-    <p id="failText">У цьому іспиті дозволено не більше двох помилок. Можна завершити зараз і побачити розбір, або продовжити відповідати на решту питань у тренувальному режимі.</p>
-    <button class="btn" id="failFinishBtn">Завершити й переглянути розбір</button>
-    <button class="btn secondary" id="failContinueBtn">Продовжити тест</button>
-  </div>
-</div>
-
-<div class="lightbox hidden" id="lightbox"><img id="lightboxImg" alt=""></div>
-
-<script src="js/data.js"></script>
-<script src="js/app.js"></script>
+<script src="/js/app.js"></script>
 </body>
 </html>

@@ -1,15 +1,33 @@
 (function(){
 "use strict";
-var DATA = window.PDR_DATA;
+/* ============================================================
+   Спільний скрипт усіх сторінок сайту. Що саме робити, береться з
+   <body data-page="...">:
+     home      — головна (посилання, помилки, налаштування)
+     exam      — /exam/                  (офіційний іспит)
+     topics    — /topics/                (список тем)
+     topic     — /topics/<id>test/       (тест за темою; data-topic="<id>")
+     tickets   — /tickets/               (список білетів)
+     ticket    — /tickets/<N>/           (білет; data-ticket="<N>")
+     random    — /tickets/random/        (20 випадкових питань)
+     mistakes  — /mistakes/              (робота над помилками)
+   ============================================================ */
+var $ = function(id){ return document.getElementById(id); };
 var LS = {
   get:function(k,d){ try{ var v=localStorage.getItem('pdr25:'+k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
   set:function(k,v){ try{ localStorage.setItem('pdr25:'+k, JSON.stringify(v)); }catch(e){} },
   del:function(k){ try{ localStorage.removeItem('pdr25:'+k); }catch(e){} }
 };
-var cfg = LS.get('cfg', {verified:true, hideImg:false, instant:true, category:'B'});
-var stats = LS.get('stats', {});      // topicId -> {best:0,total:0}
+var PAGE = document.body.getAttribute('data-page') || '';
+var cfg = LS.get('cfg', {instant:true, category:'B'});
+// у налаштуваннях лишилось лише «показувати відповідь одразу»;
+// «лише звірені» завжди увімкнено, «ховати питання з малюнком» — завжди вимкнено
+cfg.verified = true;
+cfg.hideImg = false;
+if(cfg.instant === undefined) cfg.instant = true;
+if(!cfg.category) cfg.category = 'B';
+var stats = LS.get('stats', {});       // topicId -> {best:0,total:0}
 var mistakes = LS.get('mistakes', []); // question ids
-var $ = function(id){ return document.getElementById(id); };
 
 /* ---------- exam structure ---------- */
 // Офіційна структура іспиту: 10 ПДР + 4 основи безпеки + 4 будова (за категорією) + 2 домедична допомога
@@ -36,33 +54,10 @@ var EXAM_PLAN = [
   {ids:GROUP_FIRSTAID, n:2, label:'Домедична допомога'}
 ];
 
-/* ---------- підрозділи «33. Дорожні знаки» за групами ---------- */
-// nums — номери питань (поле q.n) усередині розділу 33, які належать до цієї групи
-var SIGN_GROUPS = [
-  {id:'warning', label:'Попереджувальні знаки', nums:[108, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185,
-      186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203,
-      204, 205, 206, 207, 208, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
-      223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240,
-      241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 336, 337, 341]},
-  {id:'priority', label:'Знаки пріоритету', nums:[209, 252, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309,
-      310, 311, 312, 313]},
-  {id:'prohibit', label:'Заборонні знаки', nums:[43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64,
-      76, 77, 78, 79, 80, 81, 107, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264,
-      265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282,
-      283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 314, 315, 316, 317, 318, 319, 320,
-      321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 342, 357]},
-  {id:'mandatory', label:'Наказові знаки', nums:[1, 2, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74,
-      75, 82, 83, 84, 110, 125, 343, 344, 345]},
-  {id:'info', label:'Інформаційно-вказівні знаки', nums:[3, 4, 5, 6, 7, 8, 9, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37,
-      38, 39, 40, 41, 42, 85, 97, 98, 101, 109, 111, 112, 113, 126, 127, 128, 129, 130, 131,
-      132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149,
-      150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167,
-      168, 338, 339, 340, 346, 347, 348, 349, 350, 351, 352, 353, 356]},
-  {id:'service', label:'Знаки сервісу', nums:[96, 99, 100, 102, 103]},
-  {id:'plate', label:'Таблички до дорожніх знаків', nums:[86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 104, 105, 106, 114, 115, 116, 117, 118, 119, 120,
-      121, 122, 123, 124, 354, 355]}
-];
+/* ---------- підрозділи «33. Дорожні знаки» ---------- */
+// групи знаків лежать у js/signs.js (window.SIGN_GROUPS) — підключається на сторінках /topics/33-<N>test/
 var SIGN_TOPIC_ID = '33';
+var SIGN_GROUPS = window.SIGN_GROUPS || [];
 // n (номер питання в розділі 33) -> id групи, напр. {1:'mandatory', 2:'mandatory', ...}
 var SIGN_GROUP_BY_N = {};
 SIGN_GROUPS.forEach(function(g){
@@ -74,7 +69,8 @@ var theme = LS.get('theme', null);
 if(theme) document.documentElement.setAttribute('data-theme', theme);
 else document.documentElement.removeAttribute('data-theme');
 $('themeBtn').onclick = function(){
-  var cur = document.documentElement.getAttribute('data-theme');
+  var cur = document.documentElement.getAttribute('data-theme') ||
+    (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   var next = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   LS.set('theme', next);
@@ -82,11 +78,9 @@ $('themeBtn').onclick = function(){
 
 /* ---------- справжня видима висота екрана для .wrap ----------
    CSS-одиниці 100vh/100svh «застигають» один раз і не завжди встигають
-   оновитись, коли Android Chrome на льоту ховає/показує свою панель
-   адреси (через що й лишалось порожнє місце під нижньою панеллю).
-   Тут висота рахується наживо через visualViewport і записується в
-   CSS-змінну --app-vh, яку .wrap використовує для min-height — так
-   .wrap завжди точно відповідає тому, що насправді видно на екрані. */
+   оновитись, коли мобільний браузер на льоту ховає/показує свою панель
+   адреси. Тут висота рахується наживо через visualViewport і
+   записується в CSS-змінну --app-vh (запасний варіант для css). */
 (function(){
   function setVH(){
     var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
@@ -101,28 +95,47 @@ $('themeBtn').onclick = function(){
 })();
 
 /* ---------- lightbox (повноекранний перегляд ілюстрації) ---------- */
-$('qimg').onclick = function(){
-  $('lightboxImg').src = $('qimgEl').src;
-  $('lightboxImg').alt = $('qimgEl').alt;
-  $('lightbox').classList.remove('hidden');
-};
-$('lightbox').onclick = function(){ $('lightbox').classList.add('hidden'); };
-document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape' && !$('lightbox').classList.contains('hidden')) $('lightbox').classList.add('hidden');
-});
+if($('qimg') && $('lightbox')){
+  $('qimg').onclick = function(){
+    $('lightboxImg').src = $('qimgEl').src;
+    $('lightboxImg').alt = $('qimgEl').alt;
+    $('lightbox').classList.remove('hidden');
+  };
+  $('lightbox').onclick = function(){ $('lightbox').classList.add('hidden'); };
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && !$('lightbox').classList.contains('hidden')) $('lightbox').classList.add('hidden');
+  });
+}
+
+/* ---------- дані питань ---------- */
+var DATA = [];
+var ALL = [];
+function buildAll(){
+  DATA = window.PDR_DATA || [];
+  ALL = [];
+  DATA.forEach(function(s){
+    s.questions.forEach(function(q){
+      q.topic = s.id; q.topicTitle = s.title;
+      if(s.id === SIGN_TOPIC_ID) q.signGroup = SIGN_GROUP_BY_N[q.n] || null;
+      ALL.push(q);
+    });
+  });
+}
+buildAll();
+// на сторінках без data.js (головна, список тем) файл підтягується лише за потреби
+function ensureData(cb){
+  if(window.PDR_DATA){ if(!ALL.length) buildAll(); cb(); return; }
+  var s = document.createElement('script');
+  s.src = '/js/data.js';
+  s.onload = function(){ buildAll(); cb(); };
+  document.head.appendChild(s);
+}
+function topicTitleById(id){
+  for(var i=0;i<DATA.length;i++) if(DATA[i].id === id) return DATA[i].title;
+  return '';
+}
 
 /* ---------- pool ---------- */
-var ALL = [];
-DATA.forEach(function(s){
-  s.questions.forEach(function(q){
-    q.topic = s.id; q.topicTitle = s.title;
-    if(s.id === SIGN_TOPIC_ID) q.signGroup = SIGN_GROUP_BY_N[q.n] || null;
-    ALL.push(q);
-  });
-});
-function signGroupPool(groupId){
-  return ALL.filter(function(q){ return q.topic === SIGN_TOPIC_ID && q.signGroup === groupId && allowed(q); });
-}
 function allowed(q){
   if(q.a === null || q.a === undefined) return false;
   if(cfg.verified && !q.v) return false;
@@ -131,6 +144,9 @@ function allowed(q){
 }
 function pool(){ return ALL.filter(allowed); }
 function topicPool(id){ return ALL.filter(function(q){ return q.topic === id && allowed(q); }); }
+function signGroupPool(groupId){
+  return ALL.filter(function(q){ return q.topic === SIGN_TOPIC_ID && q.signGroup === groupId && allowed(q); });
+}
 function relaxedAllowed(q){ return q.a !== null && q.a !== undefined; }
 function poolByIds(ids, relaxed){
   var f = relaxed ? relaxedAllowed : allowed;
@@ -172,91 +188,32 @@ function hashSeed(str){
     return (h >>> 0) / 4294967296;
   };
 }
-
-/* ---------- home ---------- */
-function renderHome(filter){
-  filter = (filter||'').trim().toLowerCase();
-  $('poolCount').textContent = pool().length;
-  $('mistCount').textContent = mistakes.length;
-  var host = $('topics'); host.innerHTML = '';
-  var shown = 0;
-  DATA.forEach(function(s){
-    var qs = topicPool(s.id);
-    if(!qs.length) return;
-    if(filter){
-      var hitTitle = s.title.toLowerCase().indexOf(filter) > -1 || s.id.indexOf(filter) === 0;
-      if(!hitTitle){
-        var hitQ = qs.some(function(q){ return q.q.toLowerCase().indexOf(filter) > -1; });
-        if(!hitQ) return;
-      }
-    }
-    shown++;
-    var st = stats[s.id] || {best:0,total:0};
-    var pct = st.total ? Math.round(st.best/st.total*100) : 0;
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'topic';
-    b.innerHTML = '<span class="num"></span><span class="t"><b></b><small></small>' +
-      (st.total ? '<span class="bar"><i style="width:'+pct+'%"></i></span>' : '') +
-      '</span><span class="go">›</span>';
-    b.querySelector('.num').textContent = s.id;
-    b.querySelector('b').textContent = s.title;
-    b.querySelector('small').textContent = qs.length + ' пит.' +
-      (st.total ? ' · найкраще ' + st.best + '/' + st.total : '') +
-      (s.trusted ? '' : ' · відповіді не звірені');
-    
-    if(s.id === SIGN_TOPIC_ID){
-    // b.onclick = function(){ start(qs, s.title, s.id, {}); }; шафл
-  // «33. Дорожні знаки» — замість одразу 357 питань відкриваємо вибір групи знаків
-      b.onclick = function(){ renderSigns(); show('signs'); };
-    } else {
-      b.onclick = function(){ start(qs, s.title, s.id, {preShuffled: true}); };
-    }
-        host.appendChild(b);
-  });
-  if(!shown){
-    host.innerHTML = '<p class="empty">Нічого не знайшли. Спробуйте інший запит або увімкніть незвірені питання в налаштуваннях.</p>';
-  }
-}
-$('search').oninput = function(){ renderHome(this.value); };
-
-/* ---------- settings ---------- */
-function sw(el, key, after){
-  el.setAttribute('aria-checked', cfg[key] ? 'true' : 'false');
-  el.onclick = function(){
-    cfg[key] = !cfg[key];
-    el.setAttribute('aria-checked', cfg[key] ? 'true' : 'false');
-    LS.set('cfg', cfg);
-    if(after) after();
-  };
-}
-sw($('swVerified'), 'verified', function(){ renderHome($('search').value); });
-sw($('swImg'), 'hideImg', function(){ renderHome($('search').value); });
-sw($('swInstant'), 'instant');
-$('setBtn').onclick = function(){ show('settings'); };
-$('setBack').onclick = function(){ show('home'); renderHome($('search').value); };
-$('resetBtn').onclick = function(){
-  stats = {}; mistakes = []; LS.del('stats'); LS.del('mistakes');
-  renderHome($('search').value);
-  $('resetBtn').textContent = 'Скинуто';
-  setTimeout(function(){ $('resetBtn').textContent = 'Скинути'; }, 1400);
-};
-
-/* ---------- screens ---------- */
-function show(name){
-  ['home','settings','quiz','result','tickets','signs'].forEach(function(n){ $(n).classList.toggle('hidden', n !== name); });
-  $('footbar').classList.toggle('hidden', name !== 'quiz');
-  window.scrollTo(0,0);
-}
-
-/* ---------- quiz engine ---------- */
-var S = null;
 function shuffle(a, rng){
   rng = rng || Math.random;
   a = a.slice();
   for(var i=a.length-1;i>0;i--){ var j=Math.floor(rng()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
   return a;
 }
+
+/* ---------- screens ---------- */
+// секції сторінки з тестом: intro (вступ/вибір категорії), quiz, result
+function show(name){
+  ['intro','quiz','result'].forEach(function(n){
+    var el = $(n); if(el) el.classList.toggle('hidden', n !== name);
+  });
+  var fb = $('footbar'); if(fb) fb.classList.toggle('hidden', name !== 'quiz');
+  window.scrollTo(0,0);
+}
+// куди вести після «Вийти» (задається на кожній сторінці в data-quit)
+function quitUrl(){ return document.body.getAttribute('data-quit') || '/'; }
+
+/* ---------- quiz engine ---------- */
+var S = null;
+var lastStarter = null; // функція, що запускає той самий тест знову («Пройти ще раз»)
+var EXAM_MINUTES = 20;
+var MAX_MISTAKES = 2; // дозволено помилок; третя — провал
+var pending = null;   // обраний, але ще не підтверджений варіант поточного питання
+
 function start(qs, title, topicId, opts){
   if(!qs.length){ return; }
   if(S && S.timerId){ clearInterval(S.timerId); }
@@ -264,7 +221,7 @@ function start(qs, title, topicId, opts){
   var list = opts.preShuffled ? qs.slice() : shuffle(qs);
   if(opts.limit) list = list.slice(0, opts.limit);
   S = {list:list, i:0, answers:[], title:title, topicId:topicId||null, limit:opts.limit||null,
-       ticketNum:opts.ticketNum||null, category:opts.category||null,
+       ticketNum:opts.ticketNum||null, category:opts.category||null, finished:false,
        strict:!!opts.strict, failShown:false, failReason:null, continued:false,
        examEndAt: opts.strict ? (Date.now() + EXAM_MINUTES*60*1000) : null, timerId:null};
   show('quiz');
@@ -272,7 +229,6 @@ function start(qs, title, topicId, opts){
   if(S.examEndAt != null) startTimer(); else $('qtimer').classList.add('hidden');
 }
 /* ---------- таймер іспиту (20 хв, лише для «Екзамен» і білетів) ---------- */
-var EXAM_MINUTES = 20;
 function startTimer(){
   if(S.timerId) clearInterval(S.timerId);
   $('qtimer').classList.remove('hidden');
@@ -307,7 +263,6 @@ function failExam(reason){
   badge.textContent = reason === 'time' ? 'Іспит не складено: вийшов час' : 'Іспит не складено через помилки';
   showFailModal(reason);
 }
-var pending = null; // обраний, але ще не підтверджений варіант поточного питання
 function renderQ(){
   var q = S.list[S.i];
   pending = null;
@@ -322,7 +277,7 @@ function renderQ(){
     imgEl.onerror = function(){ $('qimg').classList.add('hidden'); };
     imgEl.onload = function(){ $('qimg').classList.remove('hidden'); };
     $('qimg').classList.remove('hidden');
-    imgEl.src = 'img/' + q.id + '.webp';
+    imgEl.src = '/img/' + q.id + '.webp';
     imgEl.alt = 'Ілюстрація до питання ' + (S.i+1);
   } else {
     $('qimg').classList.add('hidden');
@@ -387,12 +342,11 @@ function updateFooter(){
     nextBtn.classList.remove('hidden');
     var all = answeredCount() === S.list.length;
     var last = S.i === S.list.length - 1;
-if (last && !all) {
+    if(last && !all){
       nextBtn.textContent = 'Далі';
     } else {
       nextBtn.textContent = (all || last) ? 'Завершити тест' : 'Далі';
     }
-    
     nextBtn.disabled = false;
   } else {
     nextBtn.classList.add('hidden');
@@ -430,7 +384,7 @@ function markStrip(){
   }
 }
 function goTo(k){
-  if(!S || k === S.i || k < 0 || k >= S.list.length) return;
+  if(!S || S.finished || k === S.i || k < 0 || k >= S.list.length) return;
   S.i = k;
   renderQ();
 }
@@ -463,7 +417,6 @@ function answer(idx){
     setTimeout(function(){ failExam('mistakes'); }, delay);
   }
 }
-var MAX_MISTAKES = 2; // дозволено помилок; третя — провал
 function wrongCount(){
   var n = 0;
   for(var k=0;k<S.answers.length;k++){ var a = S.answers[k]; if(a && !a.ok) n++; }
@@ -485,55 +438,9 @@ function showFailModal(reason){
   }
   $('failModal').classList.remove('hidden');
 }
-$('failFinishBtn').onclick = function(){ $('failModal').classList.add('hidden'); finish(); };
-$('failContinueBtn').onclick = function(){ $('failModal').classList.add('hidden'); S.continued = true; };
-// той самий фікс, що й для кнопок-варіантів: не даємо кнопці нативний фокус,
-// інакше після приховування/заміни кнопки браузер підкидає сторінку наверх
-[$('confirmBtn'), $('skipBtn'), $('nextBtn'), $('quitBtn')].forEach(function(b){
-  b.onmousedown = function(e){ e.preventDefault(); };
-});
-$('confirmBtn').onclick = function(){
-  if(pending === null) return;
-  answer(pending);
-};
-$('skipBtn').onclick = function(){
-  if(S.answers[S.i] !== undefined) return;
-  pending = null;
-  if(S.i < S.list.length - 1){ S.i++; renderQ(); }
-  else { finish(); }
-};
-$('nextBtn').onclick = function(){
-  var all = answeredCount() === S.list.length;
-  var last = S.i === S.list.length - 1;
-  
-  // Якщо це останнє питання, але ще не на все відповіли
-  if (last && !all) {
-    // Шукаємо перше ліворуч чи праворуч питання, на яке ще НЕМАЄ відповіді
-    var nextUnanswered = -1;
-    for(var k = 0; k < S.list.length; k++){
-      if(S.answers[k] === undefined){
-        nextUnanswered = k;
-        break; // Знайшли перше пропущене — зупиняємо пошук
-      }
-    }
-    if(nextUnanswered !== -1){
-      goTo(nextUnanswered); // Перекидаємо на нього
-    }
-    return;
-  }
-  
-  // Стандартна логіка: якщо все пройшли або це справжній кінець — завершуємо, інакше йдемо на +1
-  if(all || last) {
-    finish();
-  } else {
-    S.i++; 
-    renderQ();
-  }
-};
-$('quitBtn').onclick = function(){ if(confirm('Вийти з тесту? Результат не збережеться.')){ clearTimer(); show('home'); renderHome($('search').value); } };
-
 function finish(){
   clearTimer();
+  S.finished = true;
   var right = S.answers.filter(function(a){ return a && a.ok; }).length;
   var total = S.list.length;
   var wrong = wrongCount();
@@ -565,16 +472,16 @@ function finish(){
     stats[S.topicId] = st; LS.set('stats', stats);
   }
   var host = $('review'); host.innerHTML = '';
-  var wrong = 0;
+  var wrongList = 0;
   S.list.forEach(function(q, i){
     var a = S.answers[i];
     if(a && a.ok) return;
-    wrong++;
+    wrongList++;
     var d = document.createElement('div');
     d.className = 'rev';
     if(q.img){
       var thumb = document.createElement('div'); thumb.className = 'revimg';
-      var im = document.createElement('img'); im.src = 'img/' + q.id + '.webp'; im.alt = ''; im.loading = 'lazy';
+      var im = document.createElement('img'); im.src = '/img/' + q.id + '.webp'; im.alt = ''; im.loading = 'lazy';
       im.onerror = function(){ thumb.classList.add('hidden'); };
       thumb.appendChild(im); d.appendChild(thumb);
     }
@@ -591,32 +498,95 @@ function finish(){
     d.appendChild(body);
     host.appendChild(d);
   });
-  if(!wrong) host.innerHTML = '<p class="empty">Помилок немає — розбирати нічого.</p>';
+  if(!wrongList) host.innerHTML = '<p class="empty">Помилок немає — розбирати нічого.</p>';
   show('result');
 }
-$('againBtn').onclick = function(){
-  if(S.topicId === '__exam__') startExam();
-  else if(S.topicId === '__mistakes__') startMistakes();
-  else if(S.topicId === '__official__') startOfficialExam();
-  else if(S.topicId === '__ticket__') startTicket(S.ticketNum);
-  //else start(topicPool(S.topicId), S.title, S.topicId, {limit:S.limit}); шафл знову
-  else start(topicPool(S.topicId), S.title, S.topicId, {limit:S.limit, preShuffled: true});
-};
-$('homeBtn').onclick = function(){ show('home'); renderHome($('search').value); };
 
-/* ---------- entry points ---------- */
-function startExam(){
-  var p = pool();
-  if(p.length < 5){ alert('Замало питань за поточних налаштувань.'); return; }
-  start(p, 'Випадковий тест', '__exam__', {limit:20});
+/* ---------- кнопки тесту (є лише на сторінках, де проходять тест) ---------- */
+if($('quiz')){
+  $('failFinishBtn').onclick = function(){ $('failModal').classList.add('hidden'); finish(); };
+  $('failContinueBtn').onclick = function(){ $('failModal').classList.add('hidden'); S.continued = true; };
+  // не даємо кнопкам нативний фокус: інакше після приховування/заміни кнопки
+  // браузер підкидає сторінку наверх
+  [$('confirmBtn'), $('skipBtn'), $('nextBtn'), $('quitBtn')].forEach(function(b){
+    b.onmousedown = function(e){ e.preventDefault(); };
+  });
+  $('confirmBtn').onclick = function(){
+    if(pending === null) return;
+    answer(pending);
+  };
+  $('skipBtn').onclick = function(){
+    if(S.answers[S.i] !== undefined) return;
+    pending = null;
+    if(S.i < S.list.length - 1){ S.i++; renderQ(); }
+    else { finish(); }
+  };
+  $('nextBtn').onclick = function(){
+    var all = answeredCount() === S.list.length;
+    var last = S.i === S.list.length - 1;
+    // останнє питання, але ще не на все відповіли — ведемо до першого пропущеного
+    if(last && !all){
+      for(var k = 0; k < S.list.length; k++){
+        if(S.answers[k] === undefined){ goTo(k); break; }
+      }
+      return;
+    }
+    if(all || last) finish();
+    else { S.i++; renderQ(); }
+  };
+  $('quitBtn').onclick = function(){
+    if(confirm('Вийти з тесту? Результат не збережеться.')){
+      clearTimer();
+      location.href = quitUrl();
+    }
+  };
+  $('againBtn').onclick = function(){ if(lastStarter) lastStarter(); };
+  document.addEventListener('keydown', function(e){
+    if($('quiz').classList.contains('hidden') || !S) return;
+    if(e.key >= '1' && e.key <= '9'){
+      var b = $('opts').children[parseInt(e.key,10)-1];
+      if(b && !b.disabled) b.click();
+    } else if(e.key === 'Enter'){
+      if(!$('nextBtn').classList.contains('hidden') && !$('nextBtn').disabled) $('nextBtn').click();
+      else if(!$('confirmBtn').classList.contains('hidden') && !$('confirmBtn').disabled) $('confirmBtn').click();
+    } else if(e.key === 'ArrowRight'){ goTo(S.i + 1); }
+    else if(e.key === 'ArrowLeft'){ goTo(S.i - 1); }
+  });
 }
-function startMistakes(){
-  var set = {};
-  mistakes.forEach(function(id){ set[id] = true; });
-  var qs = ALL.filter(function(q){ return set[q.id] && q.a !== null; });
-  if(!qs.length){ alert('Помилок поки немає. Пройдіть тест — сюди потраплять питання, у яких ви помилилися.'); return; }
-  start(qs, 'Робота над помилками', '__mistakes__', {limit:Math.min(qs.length, 20)});
+
+/* ---------- лого/назва → головна (з підтвердженням, якщо тест іде) ---------- */
+(function(){
+  var brand = document.querySelector('a.brand');
+  if(!brand) return;
+  brand.addEventListener('click', function(e){
+    if(S && !S.finished){
+      if(confirm('Ви зараз проходите тест. Перейти на головну? Результат тесту не збережеться.')){
+        clearTimer();
+      } else {
+        e.preventDefault();
+      }
+    }
+  });
+})();
+
+/* ---------- вибір категорії ---------- */
+function renderCatRow(){
+  var host = $('catrow'); if(!host) return;
+  host.innerHTML = '';
+  CATS.forEach(function(c){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (cfg.category === c.id ? ' on' : '');
+    b.innerHTML = c.id + '<small>' + c.label + '</small>';
+    b.onclick = function(){
+      cfg.category = c.id; LS.set('cfg', cfg);
+      renderCatRow();
+    };
+    host.appendChild(b);
+  });
 }
+
+/* ---------- точки входу: запуск тестів ---------- */
 function startOfficialExam(){
   var built = buildComposition(cfg.category, Math.random);
   if(built.list.length < 20 || built.shortfall){
@@ -631,90 +601,151 @@ function startTicket(num){
   start(built.list, 'Білет ' + num + ' · категорія ' + cfg.category, '__ticket__',
     {preShuffled:true, ticketNum:num, category:cfg.category, strict:true});
 }
-$('examBtn').onclick = startExam;
-$('mistakesBtn').onclick = startMistakes;
-$('officialBtn').onclick = startOfficialExam;
+function startRandom(){
+  var p = pool();
+  if(p.length < 5){ alert('Замало питань за поточних налаштувань.'); return; }
+  start(p, 'Випадковий тест', '__exam__', {limit:20});
+}
+function startMistakes(){
+  var set = {};
+  mistakes.forEach(function(id){ set[id] = true; });
+  var qs = ALL.filter(function(q){ return set[q.id] && q.a !== null; });
+  if(!qs.length){ return; }
+  start(qs, 'Робота над помилками', '__mistakes__', {limit:Math.min(qs.length, 20)});
+}
+function runStarter(fn){ lastStarter = fn; fn(); }
 
-/* ---------- category chips ---------- */
-function renderCatRow(elId){
-  var host = $(elId); if(!host) return;
-  host.innerHTML = '';
-  CATS.forEach(function(c){
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'chip' + (cfg.category === c.id ? ' on' : '');
-    b.innerHTML = c.id + '<small>' + c.label + '</small>';
-    b.onclick = function(){
-      cfg.category = c.id; LS.set('cfg', cfg);
-      renderCatRow('catrow'); renderCatRow('catrowTickets');
-      if(!$('tickets').classList.contains('hidden')) renderTickets();
+/* ============================================================
+   Ініціалізація залежно від сторінки
+   ============================================================ */
+function initHome(){
+  var mc = $('mistCount'); if(mc) mc.textContent = mistakes.length;
+  var sw = $('swInstant');
+  if(sw){
+    sw.setAttribute('aria-checked', cfg.instant ? 'true' : 'false');
+    sw.onclick = function(){
+      cfg.instant = !cfg.instant;
+      sw.setAttribute('aria-checked', cfg.instant ? 'true' : 'false');
+      LS.set('cfg', cfg);
     };
-    host.appendChild(b);
-  });
-}
-
-/* ---------- tickets ---------- */
-var TICKET_COUNT = 40;
-function renderTickets(){
-  var host = $('ticketGrid'); host.innerHTML = '';
-  for(var n=1;n<=TICKET_COUNT;n++){
-    (function(n){
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.innerHTML = n + '<small>білет</small>';
-      b.onclick = function(){ startTicket(n); };
-      host.appendChild(b);
-    })(n);
+  }
+  var rb = $('resetBtn');
+  if(rb){
+    rb.onclick = function(){
+      stats = {}; mistakes = []; LS.del('stats'); LS.del('mistakes');
+      if(mc) mc.textContent = 0;
+      rb.textContent = 'Скинуто';
+      setTimeout(function(){ rb.textContent = 'Скинути'; }, 1400);
+    };
   }
 }
-$('ticketsBtn').onclick = function(){ renderCatRow('catrowTickets'); renderTickets(); show('tickets'); };
-$('ticketsBack').onclick = function(){ show('home'); };
 
-/* ---------- 33. Дорожні знаки — вибір групи ---------- */
-function renderSigns(){
-  var host = $('signGrid'); host.innerHTML = '';
-  var topic = DATA.filter(function(s){ return s.id === SIGN_TOPIC_ID; })[0];
-  var all = topicPool(SIGN_TOPIC_ID);
-
-  function addRow(label, count, onClick){
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'topic';
-    b.innerHTML = '<span class="num"></span><span class="t"><b></b><small></small></span><span class="go">›</span>';
-    b.querySelector('b').textContent = label;
-    b.querySelector('small').textContent = count + ' пит.';
-    b.onclick = onClick;
-    host.appendChild(b);
-  }
-
-  addRow('Усі питання розділу', all.length, function(){
-    start(all, topic.title, SIGN_TOPIC_ID, {preShuffled: true});
+function initTopics(){
+  // прогрес по темах (і по групах знаків) із localStorage
+  Array.prototype.forEach.call(document.querySelectorAll('#topicList [data-topic]'), function(el){
+    var st = stats[el.getAttribute('data-topic')];
+    if(!st || !st.total) return;
+    var pct = Math.round(st.best/st.total*100);
+    var t = el.querySelector('.t');
+    t.querySelector('small').textContent += ' · найкраще ' + st.best + '/' + st.total;
+    var bar = document.createElement('span');
+    bar.className = 'bar';
+    bar.innerHTML = '<i style="width:' + pct + '%"></i>';
+    t.appendChild(bar);
   });
-  SIGN_GROUPS.forEach(function(g){
-    var qs = signGroupPool(g.id);
-    if(!qs.length) return;
-    addRow(g.label, qs.length, function(){
-      start(qs, g.label, SIGN_TOPIC_ID, {preShuffled: true});
+  // пошук: за назвою/номером теми одразу, за текстом питань — після підвантаження data.js
+  var items = Array.prototype.slice.call(document.querySelectorAll('#topicList > [data-topic]'));
+  var input = $('search'), empty = $('topicsEmpty');
+  if(!input) return;
+  function apply(){
+    var f = input.value.trim().toLowerCase();
+    var shown = 0;
+    items.forEach(function(el){
+      var id = el.getAttribute('data-topic');
+      var title = el.querySelector('b').textContent.toLowerCase();
+      var hit = !f || title.indexOf(f) > -1 || id.indexOf(f) === 0;
+      if(!hit && ALL.length){
+        hit = ALL.some(function(q){ return q.topic === id && q.q.toLowerCase().indexOf(f) > -1; });
+      }
+      el.classList.toggle('hidden', !hit);
+      if(hit) shown++;
+    });
+    if(empty) empty.classList.toggle('hidden', shown > 0);
+  }
+  input.oninput = function(){
+    apply();
+    if(input.value.trim() && !ALL.length) ensureData(apply);
+  };
+}
+
+function initTopic(){
+  // data-topic: «6», «33» або «33.1» (група знаків); data-group — id групи знаків
+  var id = document.body.getAttribute('data-topic');
+  var group = document.body.getAttribute('data-group');
+  var mainId = group ? SIGN_TOPIC_ID : id;
+  var title = 'Тема ' + id + ' - ' + topicTitleById(mainId);
+  var qs = group ? signGroupPool(group) : topicPool(mainId);
+  if(!qs.length){
+    $('quiz').classList.add('hidden');
+    $('topicEmpty').classList.remove('hidden');
+    return;
+  }
+  runStarter(function(){ start(qs, title, id, {preShuffled: true}); });
+}
+
+function initExam(){
+  renderCatRow();
+  $('startBtn').onclick = function(){ runStarter(startOfficialExam); };
+}
+function initTicket(){
+  var num = parseInt(document.body.getAttribute('data-ticket'), 10);
+  renderCatRow();
+  $('startBtn').onclick = function(){ runStarter(function(){ startTicket(num); }); };
+}
+function initTickets(){
+  renderCatRow();
+  var btn = $('startBtn'), picked = null;
+  var links = Array.prototype.slice.call(document.querySelectorAll('.tgrid a[data-ticket]'));
+  links.forEach(function(a){
+    a.addEventListener('click', function(e){
+      // звичайний клік — лише вибір номера; Ctrl/Cmd/середня кнопка відкривають /tickets/<N>/
+      if(e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;
+      e.preventDefault();
+      picked = parseInt(a.getAttribute('data-ticket'), 10);
+      links.forEach(function(x){ x.classList.toggle('on', x === a); });
+      btn.disabled = false;
+      btn.textContent = 'Почати білет №' + picked;
     });
   });
+  btn.disabled = true;
+  btn.onclick = function(){
+    if(picked == null) return;
+    var num = picked;
+    runStarter(function(){ startTicket(num); });
+  };
 }
-$('signsBack').onclick = function(){ show('home'); };
+function initRandom(){
+  $('startBtn').onclick = function(){ runStarter(startRandom); };
+}
+function initMistakes(){
+  var count = ALL.filter(function(q){ return mistakes.indexOf(q.id) > -1 && q.a !== null; }).length;
+  $('mistCount').textContent = count;
+  if(!count){
+    $('mistEmpty').classList.remove('hidden');
+    $('startBtn').classList.add('hidden');
+    return;
+  }
+  $('startBtn').onclick = function(){ runStarter(startMistakes); };
+}
 
-
-document.addEventListener('keydown', function(e){
-  if($('quiz').classList.contains('hidden')) return;
-  if(e.key >= '1' && e.key <= '9'){
-    var b = $('opts').children[parseInt(e.key,10)-1];
-    if(b && !b.disabled) b.click();
-  } else if(e.key === 'Enter'){
-    if(!$('nextBtn').classList.contains('hidden') && !$('nextBtn').disabled) $('nextBtn').click();
-    else if(!$('confirmBtn').classList.contains('hidden') && !$('confirmBtn').disabled) $('confirmBtn').click();
-  } else if(e.key === 'ArrowRight'){ goTo(S.i + 1); }
-  else if(e.key === 'ArrowLeft'){ goTo(S.i - 1); }
-});
-
-$('subhead').textContent = ALL.length + ' питань · ' + DATA.length + ' тем';
-renderCatRow('catrow');
-renderHome('');
+switch(PAGE){
+  case 'home':     initHome(); break;
+  case 'topics':   initTopics(); break;
+  case 'topic':    initTopic(); break;
+  case 'exam':     initExam(); break;
+  case 'tickets':  initTickets(); break;
+  case 'ticket':   initTicket(); break;
+  case 'random':   initRandom(); break;
+  case 'mistakes': initMistakes(); break;
+}
 })();
-
